@@ -21,4 +21,4 @@ export interface EvalResult {
   runId?: number; cacheHit?: boolean; profile: Profile;
 }
 export interface EvalOptions { eligibleOnly?: boolean; withinBudget?: boolean; matchField?: boolean; matchRegion?: boolean }
-export interface Meta { regions: string[]; fields: string[]; provinces: string[]; provinceCoords: Record<string, [number, number]>; universities: { uni_id: number; uni_name: string; short_name: string; region: string; type: string }[] }
+export interface Meta { regions: string[]; fields: string[]; provinces: string[]; provinceCoords: Record<string, [number, number]>; universities: { uni_id: number; uni_name: string; short_name: string; region: string; type: string; province?: string | null; lat?: number | null; lng?: number | null }[] }

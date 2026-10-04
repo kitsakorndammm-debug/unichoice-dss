@@ -48,9 +48,9 @@ export default function Programs() {
           </Select>
         </div>
         <div className="mt-3 flex items-center gap-3 text-sm text-ink-2">
-          <span>ค่าเทอมไม่เกิน</span>
+          <span className="whitespace-nowrap">ค่าเทอมไม่เกิน</span>
           <input type="range" min={10000} max={100000} step={1000} value={f.maxFee || 100000} onChange={(e) => setF({ ...f, maxFee: e.target.value === '100000' ? '' : e.target.value })} className="slider w-56" style={{ ['--p' as string]: `${(((Number(f.maxFee) || 100000) - 10000) / 90000) * 100}%` }} />
-          <span className="num font-medium text-ink">{f.maxFee ? `${baht(Number(f.maxFee))} บาท/เทอม` : 'ไม่จำกัด'}</span>
+          <span className="num whitespace-nowrap font-medium text-ink">{f.maxFee ? `${baht(Number(f.maxFee))} บาท/เทอม` : 'ไม่จำกัด'}</span>
         </div>
       </Card>
 

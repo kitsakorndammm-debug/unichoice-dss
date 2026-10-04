@@ -16,7 +16,7 @@ student.use(requireAuth);
 
 // ---------- ข้อมูลตั้งต้นสำหรับฟอร์ม ----------
 student.get('/meta', ah(async (_req, res) => {
-  const unis = await q(`SELECT uni_id, uni_name, short_name, region, type FROM university ORDER BY uni_name`);
+  const unis = await q(`SELECT uni_id, uni_name, short_name, region, type, province, lat, lng FROM university ORDER BY uni_name`);
   res.json({ regions: REGIONS, fields: FIELDS, provinces: PROVINCE_NAMES, provinceCoords: PROVINCES, universities: unis });
 }));
 

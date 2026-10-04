@@ -69,15 +69,15 @@ export default function ProgramDetail({ id }: { id: number }) {
 
   return (
     <>
-      <Link to="/programs" className="text-sm text-ink-2 hover:text-ink">← กลับไปหน้าค้นหา</Link>
+      <Link to="/programs" className="inline-flex min-h-10 items-center text-sm text-ink-2 hover:text-ink sm:min-h-0">← กลับไปหน้าค้นหา</Link>
       <div className="mt-3 mb-5 flex flex-wrap items-start justify-between gap-4">
         <div>
           <div className="flex flex-wrap gap-1.5"><Badge tone="brand">{p.field}</Badge><Badge>{p.uni_type}</Badge><Badge>{p.degree}</Badge></div>
           <h1 className="mt-2 text-2xl font-semibold tracking-tight">{p.program_name}</h1>
           <div className="text-ink-2">{p.uni_name} · {p.faculty}</div>
           <div className="flex flex-wrap gap-x-4 text-sm">
-            {p.website && <a href={p.website} target="_blank" rel="noreferrer" className="text-brand-600 hover:underline">{p.website.replace(/^https?:\/\//, '')} ↗</a>}
-            <a href={mapUrl(p, evalSession.get()?.profile)} target="_blank" rel="noreferrer" className="text-brand-600 hover:underline">ดูที่ตั้งและเส้นทางใน Google Maps ↗</a>
+            {p.website && <a href={p.website} target="_blank" rel="noreferrer" className="inline-block py-1.5 text-brand-600 hover:underline sm:py-0">{p.website.replace(/^https?:\/\//, '')} ↗</a>}
+            <a href={mapUrl(p, evalSession.get()?.profile)} target="_blank" rel="noreferrer" className="inline-block py-1.5 text-brand-600 hover:underline sm:py-0">ดูที่ตั้งและเส้นทางใน Google Maps ↗</a>
           </div>
         </div>
         <div className="flex gap-2">
@@ -128,7 +128,7 @@ export default function ProgramDetail({ id }: { id: number }) {
               <tbody className="num">
                 {ev.details.map((x) => (
                   <tr key={x.code} className="border-b border-line/60 last:border-0">
-                    <td className="py-1.5"><span className="mr-2 inline-block h-2 w-2 rounded-[2px]" style={{ background: colorFor(x.code) }} />{x.name} <span className="text-[10px] text-muted">{x.type}</span></td>
+                    <td className="py-1.5"><span className="mr-2 inline-block h-2 w-2 rounded-[2px]" style={{ background: colorFor(x.code) }} />{x.name} <span className="text-[11px] text-muted">{x.type}</span></td>
                     <td className="py-1.5 text-right">{baht(x.raw)}</td><td className="py-1.5 text-right">{x.normalized.toFixed(3)}</td>
                     <td className="py-1.5 text-right">{(x.weight * 100).toFixed(0)}%</td><td className="py-1.5 text-right font-medium">{(x.weighted * 100).toFixed(2)}</td>
                   </tr>
