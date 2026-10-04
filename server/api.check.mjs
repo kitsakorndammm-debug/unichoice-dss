@@ -161,6 +161,17 @@ const withDist = (await call('/programs?sort=fee', { token: N })).json.programs;
 ok('program search returns distance + campus coords', withDist.every((p) => Number.isFinite(p.distanceKm) && p.uni_lat != null && p.uni_lng != null));
 const half = await call('/profile', { method: 'PUT', token: N, body: { home_lat: 16.7, home_lng: null } });
 ok('lat without lng is discarded', half.status === 200 && half.json.profile.home_lat == null && half.json.profile.home_lng == null);
+// ---- คะแนนรายวิชา
+const sub = await call('/profile', { method: 'PUT', token: N, body: { subject_scores: { tgat: 80, a61: 90, a82: '', a64: null } } });
+ok('profile stores subject scores (blank ones dropped)', sub.status === 200 && JSON.stringify(sub.json.profile.subject_scores) === JSON.stringify({ a61: 90, tgat: 80 }), JSON.stringify(sub.json.profile?.subject_scores));
+ok('unknown subject = 400', (await call('/profile', { method: 'PUT', token: N, body: { subject_scores: { hacking: 50 } } })).status === 400);
+ok('subject score out of range = 400', (await call('/profile', { method: 'PUT', token: N, body: { subject_scores: { tgat: 140 } } })).status === 400);
+const withSub = await ev(crit.map((c) => c.default_weight), { matchField: true });
+const bySub = withSub.results.filter((x) => x.scoreBasis === 'subjects');
+ok('programs with a known formula are scored from subject scores', bySub.length > 0 && bySub.every((x) => x.program.score_weights && x.myScore != null), `${bySub.length}/${withSub.results.length} by subjects`);
+ok('/meta lists subjects', (await call('/meta', { token: N })).json.subjects?.length === 16);
+const cleared = await call('/profile', { method: 'PUT', token: N, body: { subject_scores: null } });
+ok('subject scores can be cleared', cleared.status === 200 && cleared.json.profile.subject_scores == null);
 // ---- สถิติ TCAS จริง
 const real = all.filter((p) => p.score_source);
 ok('real TCAS stats on most programs', real.length >= 200 && real.every((p) => p.max_score >= p.min_score && p.min_gpa >= 0 && p.min_gpa <= 4 && Number(p.gpax_weight) >= 0 && Number(p.gpax_weight) <= 1 && p.applicants >= 0), `real=${real.length}/${all.length}`);

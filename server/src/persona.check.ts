@@ -6,7 +6,7 @@ const crit: CriteriaDef[] = C.map((c, i) => ({ criteria_id: i + 1, code: c.code,
 const uni = new Map(universities.map((u) => [u.short as string, u]));
 const progs: ProgramData[] = programs.map((p, i) => ({
   program_id: i + 1, program_name: p.name, uni_name: uni.get(p.uni)!.name, short_name: p.uni, region: uni.get(p.uni)!.region, province: uni.get(p.uni)!.province, uni_lat: uni.get(p.uni)!.lat, uni_lng: uni.get(p.uni)!.lng,
-  field: p.field, tuition_fee: p.fee, yearly_cost: p.yearly, min_gpa: p.minGpa, gpax_weight: p.gpaxWeight, min_score: p.minScore, max_score: p.maxScore, ranking: p.rank, capacity: p.cap,
+  field: p.field, tuition_fee: p.fee, yearly_cost: p.yearly, min_gpa: p.minGpa, gpax_weight: p.gpaxWeight, score_weights: p.scoreWeights, min_score: p.minScore, max_score: p.maxScore, ranking: p.rank, capacity: p.cap,
 }));
 const W = (w: Record<string, number>) => Object.fromEntries(crit.map((c) => [c.criteria_id, w[c.code] ?? 0]));
 const DEF = W(Object.fromEntries(C.map((c) => [c.code, c.weight])));

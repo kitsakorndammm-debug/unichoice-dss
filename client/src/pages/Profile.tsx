@@ -3,6 +3,7 @@ import { api } from '../lib/api';
 import { navigate } from '../lib/router';
 import type { Meta, Profile, User } from '../lib/types';
 import { HomeLocation } from '../components/HomeLocation';
+import { SubjectScores } from '../components/SubjectScores';
 import { Button, Card, Field, Input, Loading, PageHeader, Select, useToast } from '../components/ui';
 
 export default function ProfilePage() {
@@ -41,6 +42,7 @@ export default function ProfilePage() {
           <div className="grid grid-cols-2 gap-3.5">
             <Field label="GPA สะสม" hint="0.00 – 4.00"><Input type="number" step="0.01" min={0} max={4} value={p.gpa ?? ''} onChange={(e) => setP({ ...p, gpa: num(e.target.value) })} /></Field>
             <Field label="คะแนนสอบ (%)" hint="TGAT/TPAT/A-Level คิดเป็นร้อยละ"><Input type="number" min={0} max={100} value={p.exam_score ?? ''} onChange={(e) => setP({ ...p, exam_score: num(e.target.value) })} /></Field>
+            <div className="col-span-2"><SubjectScores profile={p} meta={meta} onChange={(patch) => setP({ ...p, ...patch })} /></div>
             <div className="col-span-2"><Field label="งบค่าเล่าเรียนต่อปี (บาท)" hint="ค่าเทอม × จำนวนเทอมต่อปี เช่น เทอมละ 17,100 สองเทอม = 34,200"><Input type="number" step="1000" min={0} value={p.budget ?? ''} onChange={(e) => setP({ ...p, budget: num(e.target.value) })} /></Field></div>
             <div className="col-span-2"><HomeLocation profile={p} meta={meta} onChange={(patch) => setP({ ...p, ...patch })} /></div>
             <Field label="ภูมิภาคที่สนใจ"><Select value={p.preferred_region ?? 'ทั้งหมด'} onChange={(e) => setP({ ...p, preferred_region: e.target.value })}><option>ทั้งหมด</option>{meta.regions.map((r) => <option key={r}>{r}</option>)}</Select></Field>

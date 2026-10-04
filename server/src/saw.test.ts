@@ -1,7 +1,7 @@
 // ทดสอบ SAW Engine: npm test
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { evaluate, admissionChance, comparableScore, flagsFor, type CriteriaDef, type ProgramData, type Profile } from './saw.js';
+import { evaluate, admissionChance, comparableScore, subjectScore, flagsFor, type CriteriaDef, type ProgramData, type Profile } from './saw.js';
 
 const base: Omit<ProgramData, 'program_id' | 'program_name' | 'tuition_fee' | 'capacity'> = {
   uni_name: 'ม.ตัวอย่าง', region: 'กลาง', field: 'คอมพิวเตอร์และไอที', min_gpa: 2.5, min_score: 40,
@@ -112,6 +112,24 @@ test('หลักสูตรที่คัดเลือกด้วย GPAX
   assert.deepEqual(flagsFor({ ...real, gpax_weight: 0 }, me).includes('below_min_score'), true);
   // ไม่มีสถิติจริง (ค่าประมาณ) → ไม่ใช้สัดส่วน GPAX
   assert.equal(comparableScore(me, { ...real, max_score: null, gpax_weight: 1 }), 50);
+});
+
+test('คะแนนรายวิชา: คิดคะแนนรวมตามสูตรของหลักสูตร วิชาที่ไม่ได้กรอกใช้คะแนนสอบรวมแทน', () => {
+  const prog = { ...P(1, 'จริง', 1, 1), min_gpa: 0, min_score: 60, max_score: 80, score_weights: { tgat: 20, a61: 40, a82: 40 } };
+  const me = { ...profile, gpa: 3.0, exam_score: 50, subject_scores: { tgat: 70, a61: 55, a82: 75 } };
+  assert.equal(subjectScore(me, prog), 66);                       // 70×0.2 + 55×0.4 + 75×0.4
+  assert.equal(comparableScore(me, prog), 66);
+  assert.equal(admissionChance(me, prog), 64);                    // 50 + 45 × (66−60)/20 = 63.5
+  // กรอกไม่ครบ: วิชาที่ขาดใช้คะแนนสอบรวม (50)
+  assert.equal(subjectScore({ ...me, subject_scores: { a61: 90 } }, prog), 66); // 50×0.2 + 90×0.4 + 50×0.4
+  // สูตรมี GPAX: ใช้ GPA × 25
+  assert.equal(subjectScore(me, { ...prog, score_weights: { gpax: 50, tgat: 50 } }), 72.5); // 75×0.5 + 70×0.5
+  // ไม่ได้กรอกวิชาที่สูตรนี้ใช้เลย / ไม่รู้สูตร / ไม่มีสถิติจริง → กลับไปใช้คะแนนสอบรวม
+  assert.equal(subjectScore({ ...me, subject_scores: { a66: 99 } }, prog), null);
+  assert.equal(comparableScore({ ...me, subject_scores: { a66: 99 } }, prog), 50);
+  assert.equal(subjectScore(me, { ...prog, score_weights: null }), null);
+  assert.equal(subjectScore(me, { ...prog, max_score: null }), null);
+  assert.equal(subjectScore({ ...me, subject_scores: null }, prog), null);
 });
 
 test('น้ำหนักรวมเป็น 0 ต้อง error', () => {

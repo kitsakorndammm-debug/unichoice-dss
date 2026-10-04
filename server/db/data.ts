@@ -533,6 +533,7 @@ const clamp = (n: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, n
 
 export interface SeedProgram {
   uni: string; name: string; faculty: string; field: Field; fee: number; yearly: number;
+  scoreWeights: Record<string, number> | null; // สูตรคะแนนคัดเลือกรอบ 3 รายวิชา (%) ตามประกาศ เช่น { tgat: 20, a61: 40, a82: 40 } — null = ไม่ทราบ
   minGpa: number; gpaxWeight: number; // gpaxWeight = สัดส่วน GPAX (0–1) ในคะแนนรวมที่ใช้คัดเลือกรอบ 3 ของหลักสูตร
   minScore: number; maxScore: number | null; applicants: number | null; scoreSource: string | null;
   cap: number; rank: number; desc: string;
@@ -730,7 +731,7 @@ const gpaxNote = (gpax: number, known: boolean) =>
 
 /** หลักสูตรภาคปกติอื่นจากไฟล์สถิติ ทปอ. — นำเข้าเฉพาะที่มีค่าเทอมรายคณะรองรับ */
 export const skippedNoFee: { uni: string; faculty: string; name: string }[] = [];
-const extraPrograms: SeedProgram[] = TCAS_EXTRA.flatMap(([uni, faculty, name, cap, applied, min, max, course, gpax, gpaxKnown, minGpa, officialFee, feeKind, feeText]) => {
+const extraPrograms: SeedProgram[] = TCAS_EXTRA.flatMap(([uni, faculty, name, cap, applied, min, max, course, gpax, gpaxKnown, minGpa, officialFee, feeKind, feeText, w]) => {
   const u = UNI.get(uni);
   if (!u) return [];
   // ค่าเทอม: 1) ค่าใช้จ่ายรายหลักสูตรที่มหาวิทยาลัยแจ้ง ทปอ. เป็นอัตราต่อภาคชัดเจน (เจาะจงถึงหลักสูตร)
@@ -745,7 +746,7 @@ const extraPrograms: SeedProgram[] = TCAS_EXTRA.flatMap(([uni, faculty, name, ca
     : `ค่าใช้จ่ายที่มหาวิทยาลัยแจ้ง ทปอ. ใน mytcas: "${feeText}"${feeKind === 'total' ? ' — คิดเฉลี่ยจากยอดตลอดหลักสูตร ÷ จำนวนภาค' : feeKind === 'first' ? ' — เป็นยอดภาคแรกเข้าโดยประมาณ' : ''}`;
   return [{
     uni, name, faculty, field: classify(faculty, name, course), fee, yearly: fee * (TERMS_PER_YEAR[uni] ?? 2),
-    minGpa, gpaxWeight: gpax / 100, minScore: min, maxScore: max, applicants: applied, scoreSource: TCAS_SOURCE, cap, rank: u.rank,
+    minGpa, gpaxWeight: gpax / 100, scoreWeights: w, minScore: min, maxScore: max, applicants: applied, scoreSource: TCAS_SOURCE, cap, rank: u.rank,
     desc: `ที่มาค่าเทอม: ${feeSrc} | อันดับ THE WUR 2026: ${u.the} | เกณฑ์รับและชื่อหลักสูตร: สถิติ ${TCAS_SOURCE} ของ ทปอ.${gpaxNote(gpax, !!gpaxKnown)}`,
   }];
 });
@@ -758,7 +759,7 @@ const curatedPrograms: SeedProgram[] = universities.flatMap((u) =>
       uni: u.short, name, faculty, field, fee, yearly: yearly ?? fee * (TERMS_PER_YEAR[u.short] ?? 2),
       // มีสถิติทางการของ ทปอ. → ใช้คะแนนต่ำสุด/สูงสุด จำนวนรับ และ GPAX ขั้นต่ำตามประกาศ (0 = ไม่กำหนด)
       // ไม่มี → ใช้ค่าประมาณตามกลุ่มสาขาและกลุ่มมหาวิทยาลัย
-      minGpa: t ? t.minGpa : clamp(gpa + u.adj[0], 2, 3.75), gpaxWeight: t ? t.gpax / 100 : 0,
+      minGpa: t ? t.minGpa : clamp(gpa + u.adj[0], 2, 3.75), gpaxWeight: t ? t.gpax / 100 : 0, scoreWeights: t ? t.w : null,
       minScore: t ? t.min : clamp(score + u.adj[1], 30, 88),
       maxScore: t ? t.max : null, applicants: t ? t.applied : null, scoreSource: t ? TCAS_SOURCE : null,
       cap: t ? t.cap : cap, rank: u.rank,

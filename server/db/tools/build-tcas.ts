@@ -135,7 +135,7 @@ function kspt(official: string, name: string, faculty: string): Off[] {
 }
 
 // เกณฑ์คัดเลือกรอบ 3 รายหลักสูตรจาก mytcas (สร้างด้วย fetch-criteria.cjs): สัดส่วนน้ำหนัก GPAX ในคะแนนรวม และ GPAX ขั้นต่ำ
-interface Crit { project: string; year: string; gpax: number; minGpax: number }
+interface Crit { project: string; year: string; gpax: number; minGpax: number; w: Record<string, number> | null }
 const CRIT: Record<string, Crit[]> = JSON.parse(fs.readFileSync(path.join(path.dirname(fileURLToPath(import.meta.url)), 'tcas-criteria.json'), 'utf8'));
 const critOf = (o: Off) => { const k = CRIT[o.id]; return k ? k.find((x) => x.project === o.project) ?? k[0] : null; };
 // หลักสูตรที่ยังไม่มีประกาศเกณฑ์ ใช้ค่ากลางของหลักสูตรอื่นในสถาบันเดียวกัน (ไม่มีเลย = 0 คือเทียบด้วยคะแนนสอบล้วน)
@@ -147,7 +147,7 @@ for (const [name, list] of byUni) {
 /** { สัดส่วน GPAX (%), มาจากประกาศของหลักสูตรเองหรือไม่, GPAX ขั้นต่ำ } */
 function gpaxOf(o: Off, official: string) {
   const c = critOf(o);
-  return c ? { gpax: c.gpax, gpaxKnown: true, minGpa: Math.min(4, Math.max(0, c.minGpax)) } : { gpax: uniMedian.get(official) ?? 0, gpaxKnown: false, minGpa: 0 };
+  return c ? { gpax: c.gpax, gpaxKnown: true, minGpa: Math.min(4, Math.max(0, c.minGpax)), w: c.w ?? null } : { gpax: uniMedian.get(official) ?? 0, gpaxKnown: false, minGpa: 0, w: null };
 }
 
 // ค่าใช้จ่ายรายหลักสูตรที่มหาวิทยาลัยแจ้ง ทปอ. (สร้างด้วย build-cost.cjs): รหัสหลักสูตร → [ค่าเทอมต่อภาค, ชนิด, ข้อความเดิม]
@@ -158,7 +158,7 @@ function costOf(rows: Off[]) {
   return c ? { fee: c[0], feeKind: c[1], feeText: c[2] } : { fee: 0, feeKind: '', feeText: '' };
 }
 
-interface Stat { name: string; faculty: string; cap: number; applied: number; min: number; max: number; gpax: number; gpaxKnown: boolean; minGpa: number }
+interface Stat { name: string; faculty: string; cap: number; applied: number; min: number; max: number; gpax: number; gpaxKnown: boolean; minGpa: number; w: Record<string, number> | null }
 const r2 = (n: number) => Math.round(n * 100) / 100;
 const out: Record<string, Stat> = {};
 const extra: (Stat & { uni: string; course: string; fee: number; feeKind: string; feeText: string })[] = [];
@@ -248,13 +248,13 @@ if (process.argv.includes('--write')) {
   fs.writeFileSync(path.join(path.dirname(fileURLToPath(import.meta.url)), '../tcas.ts'),
     `// สร้างอัตโนมัติด้วย db/tools/build-tcas.ts จากไฟล์ทางการของ ทปอ. (${src}) — อย่าแก้ด้วยมือ\n` +
     `// คะแนนต่ำสุด/สูงสุดของผู้ผ่านการคัดเลือก และจำนวนรับ ในรอบ 3 Admission (คะแนนรวมถ่วงน้ำหนักตามเกณฑ์ของแต่ละหลักสูตร เต็ม 100)\n` +
-    `// gpax = สัดส่วนน้ำหนัก GPAX ในคะแนนรวมตามเกณฑ์รอบ 3 (%) | gpaxKnown = มาจากประกาศของหลักสูตรเอง (false = ค่ากลางของสถาบัน) | minGpa = GPAX ขั้นต่ำที่ประกาศ (0 = ไม่กำหนด/ไม่ทราบ)\n` +
-    `export interface TcasStat { name: string; faculty: string; cap: number; applied: number; min: number; max: number; gpax: number; gpaxKnown: boolean; minGpa: number }\n` +
+    `// gpax = สัดส่วนน้ำหนัก GPAX ในคะแนนรวมตามเกณฑ์รอบ 3 (%) | gpaxKnown = มาจากประกาศของหลักสูตรเอง (false = ค่ากลางของสถาบัน) | minGpa = GPAX ขั้นต่ำที่ประกาศ (0 = ไม่กำหนด/ไม่ทราบ) | w = สัดส่วนน้ำหนักรายวิชา (%) ตามประกาศ (null = ไม่ทราบ)\n` +
+    `export interface TcasStat { name: string; faculty: string; cap: number; applied: number; min: number; max: number; gpax: number; gpaxKnown: boolean; minGpa: number; w: Record<string, number> | null }\n` +
     `export const TCAS_SOURCE = '${src.match(/TCAS(\d+)/)?.[0] ?? 'TCAS'} รอบ 3 Admission';\n` +
     `// หลักสูตรที่ระบบกำหนดไว้เอง: 'ชื่อย่อมหาวิทยาลัย|ชื่อหลักสูตรในระบบ' → สถิติ\n` +
     `export const TCAS: Record<string, TcasStat> = ${JSON.stringify(out, null, 1)};\n` +
-    `// หลักสูตรภาคปกติอื่นทั้งหมดในไฟล์ของมหาวิทยาลัย/วิทยาเขตที่อยู่ในระบบ: [ชื่อย่อ, คณะ, ชื่อหลักสูตร, รับ, สมัคร, ต่ำสุด, สูงสุด, ชื่อหลักสูตร/ปริญญาตามไฟล์, สัดส่วน GPAX ในเกณฑ์รอบ 3 (%), 1 = สัดส่วนมาจากประกาศของหลักสูตรเอง, GPAX ขั้นต่ำ, ค่าเทอมต่อภาคที่มหาวิทยาลัยแจ้ง ทปอ. (0 = ไม่มี), ชนิด (sem/total/first), ข้อความเดิม]\n` +
-    `export const TCAS_EXTRA: [uni: string, faculty: string, name: string, cap: number, applied: number, min: number, max: number, course: string, gpax: number, gpaxKnown: number, minGpa: number, fee: number, feeKind: string, feeText: string][] = [\n` +
-    extra.map((e) => ' ' + JSON.stringify([e.uni, e.faculty, e.name, e.cap, e.applied, e.min, e.max, e.course, e.gpax, e.gpaxKnown ? 1 : 0, e.minGpa, e.fee, e.feeKind, e.feeText])).join(',\n') + '\n];\n');
+    `// หลักสูตรภาคปกติอื่นทั้งหมดในไฟล์ของมหาวิทยาลัย/วิทยาเขตที่อยู่ในระบบ: [ชื่อย่อ, คณะ, ชื่อหลักสูตร, รับ, สมัคร, ต่ำสุด, สูงสุด, ชื่อหลักสูตร/ปริญญาตามไฟล์, สัดส่วน GPAX ในเกณฑ์รอบ 3 (%), 1 = สัดส่วนมาจากประกาศของหลักสูตรเอง, GPAX ขั้นต่ำ, ค่าเทอมต่อภาคที่มหาวิทยาลัยแจ้ง ทปอ. (0 = ไม่มี), ชนิด (sem/total/first), ข้อความเดิม, สูตรคะแนนรายวิชา (%) หรือ null]\n` +
+    `export const TCAS_EXTRA: [uni: string, faculty: string, name: string, cap: number, applied: number, min: number, max: number, course: string, gpax: number, gpaxKnown: number, minGpa: number, fee: number, feeKind: string, feeText: string, w: Record<string, number> | null][] = [\n` +
+    extra.map((e) => ' ' + JSON.stringify([e.uni, e.faculty, e.name, e.cap, e.applied, e.min, e.max, e.course, e.gpax, e.gpaxKnown ? 1 : 0, e.minGpa, e.fee, e.feeKind, e.feeText, e.w])).join(',\n') + '\n];\n');
   console.log('เขียน db/tcas.ts แล้ว');
 }

@@ -26,9 +26,9 @@ export async function resetDatabase(log = console.log) {
     uniId.set(u.short, r!.uni_id);
   }
   for (const p of programs) {
-    await q(`INSERT INTO program (uni_id, program_name, faculty, field, tuition_fee, yearly_cost, min_gpa, min_score, capacity, ranking, description, max_score, applicants, score_source, gpax_weight)
-             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)`,
-      [uniId.get(p.uni), p.name, p.faculty, p.field, p.fee, p.yearly, p.minGpa, p.minScore, Math.max(1, p.cap), p.rank, p.desc, p.maxScore, p.applicants, p.scoreSource, p.gpaxWeight]);
+    await q(`INSERT INTO program (uni_id, program_name, faculty, field, tuition_fee, yearly_cost, min_gpa, min_score, capacity, ranking, description, max_score, applicants, score_source, gpax_weight, score_weights)
+             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)`,
+      [uniId.get(p.uni), p.name, p.faculty, p.field, p.fee, p.yearly, p.minGpa, p.minScore, Math.max(1, p.cap), p.rank, p.desc, p.maxScore, p.applicants, p.scoreSource, p.gpaxWeight, p.scoreWeights ? JSON.stringify(p.scoreWeights) : null]);
   }
   log(`✔ เกณฑ์ ${criteria.length} | มหาวิทยาลัย ${universities.length} | หลักสูตร ${programs.length}`);
 

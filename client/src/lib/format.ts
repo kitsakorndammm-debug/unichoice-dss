@@ -30,3 +30,12 @@ export const RISK = {
 export const SERIES = ['#2a78d6', '#eb6834', '#1baf7a', '#eda100', '#e87ba4', '#008300', '#4a3aa7', '#e34948'];
 const CODE_ORDER = ['tuition', 'employment', 'admission', 'ranking', 'salary', 'location'];
 export const colorFor = (code: string) => { const i = CODE_ORDER.indexOf(code); return SERIES[i < 0 ? 6 : i]; };
+
+/** ชื่อวิชาในสูตรคะแนนคัดเลือก (รหัสตรงกับ server/src/subjects.ts) */
+export const SUBJECT_LABEL: Record<string, string> = {
+  gpax: 'GPAX', tgat: 'TGAT', tpat1: 'TPAT1', tpat2: 'TPAT2', tpat3: 'TPAT3', tpat4: 'TPAT4', tpat5: 'TPAT5',
+  a61: 'คณิต 1', a62: 'คณิต 2', a63: 'วิทย์ประยุกต์', a64: 'ฟิสิกส์', a65: 'เคมี', a66: 'ชีววิทยา', a70: 'สังคมศึกษา', a81: 'ภาษาไทย', a82: 'ภาษาอังกฤษ', alang: 'ภาษาที่สาม',
+};
+/** สูตรคะแนนเป็นข้อความ เช่น "TGAT 20% · คณิต 1 40% · ภาษาอังกฤษ 40%" (เรียงจากน้ำหนักมากไปน้อย) */
+export const formulaText = (w: Record<string, number>) =>
+  Object.entries(w).sort((a, b) => b[1] - a[1]).map(([k, v]) => `${SUBJECT_LABEL[k] ?? k} ${Number(v) % 1 ? Number(v).toFixed(1) : v}%`).join(' · ');

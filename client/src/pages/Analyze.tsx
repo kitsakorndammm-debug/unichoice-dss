@@ -3,6 +3,7 @@ import { api, reportUrl } from '../lib/api';
 import { useStore, MAX_COMPARE } from '../lib/store';
 import { evalSession } from '../lib/session';
 import { HomeLocation } from '../components/HomeLocation';
+import { SubjectScores } from '../components/SubjectScores';
 import { Link, navigate } from '../lib/router';
 import { baht, FLAG_TEXT, RISK, colorFor, uniLabel, pct, mapUrl } from '../lib/format';
 import type { Criteria, EvalOptions, EvalResult, Meta, Profile, Ranked } from '../lib/types';
@@ -220,6 +221,7 @@ export default function Analyze() {
             <div className="grid grid-cols-2 gap-3">
               <Field label="GPA สะสม"><Input type="number" step="0.01" min={0} max={4} value={profile.gpa ?? ''} onChange={(e) => setP('gpa', e.target.value)} /></Field>
               <Field label="คะแนนสอบ (%)"><Input type="number" step="1" min={0} max={100} value={profile.exam_score ?? ''} onChange={(e) => setP('exam_score', e.target.value)} /></Field>
+              <div className="col-span-2"><SubjectScores profile={profile} meta={meta} onChange={(patch) => setProfile({ ...profile, ...patch })} /></div>
               <div className="col-span-2"><Field label="งบค่าเล่าเรียนต่อปี (บาท)" hint="ค่าเทอม × จำนวนเทอมต่อปี เช่น เทอมละ 17,100 สองเทอม = 34,200"><Input type="number" step="1000" min={0} value={profile.budget ?? ''} onChange={(e) => setP('budget', e.target.value)} /></Field></div>
               <div className="col-span-2">
                 <HomeLocation profile={profile} meta={meta} onChange={(patch) => setProfile({ ...profile, ...patch })} />

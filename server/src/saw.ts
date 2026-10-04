@@ -9,6 +9,7 @@
  * โมดูลนี้เป็น pure function ไม่แตะฐานข้อมูล จึงทดสอบแยกได้ (ดู src/saw.test.ts)
  */
 
+import type { ScoreWeights, SubjectScores } from './subjects.js';
 import { distanceBetween, proximityScore } from './geo.js';
 
 export type CriteriaType = 'benefit' | 'cost';
@@ -35,12 +36,14 @@ export interface ProgramData {
   min_gpa: number;              // 0 = ไม่กำหนด
   min_score: number;            // คะแนนต่ำสุดของผู้ที่สอบติด (หรือค่าประมาณ)
   max_score?: number | null;    // คะแนนสูงสุดของผู้ที่สอบติด — มีค่า = เป็นสถิติจริง
+  score_weights?: ScoreWeights | null; // สูตรคะแนนคัดเลือกรายวิชา (%) ตามประกาศ — null = ไม่ทราบ ใช้ gpax_weight แทน
   gpax_weight?: number | null;  // สัดส่วน GPAX (0–1) ในคะแนนรวมที่หลักสูตรใช้คัดเลือก — ใช้กับสถิติจริงเท่านั้น
   ranking: number;
   capacity: number;
 }
 
 export interface Profile {
+  subject_scores?: SubjectScores | null; // คะแนนรายวิชา (ไม่บังคับ) — มีแล้วจะคิดคะแนนรวมตามสูตรของแต่ละหลักสูตร
   gpa: number | null;
   exam_score: number | null;
   budget: number | null;
@@ -81,6 +84,8 @@ export interface RankedProgram {
   program: ProgramData;
   score: number;            // 0–100
   admissionChance: number;  // 0–100
+  myScore: number | null;   // คะแนนของผู้ใช้ที่นำไปเทียบกับสถิติของหลักสูตรนี้ (เต็ม 100)
+  scoreBasis: 'subjects' | 'overall'; // subjects = คิดจากคะแนนรายวิชาตามสูตรของหลักสูตร
   distanceKm: number | null; // ระยะทางเส้นตรงจากจังหวัดที่อยู่ (null = ยังไม่ระบุจังหวัด)
   risk: 'low' | 'medium' | 'high';
   flags: Flag[];
@@ -121,11 +126,34 @@ const round = (n: number, d = 4) => Math.round(n * 10 ** d) / 10 ** d;
 const clamp = (n: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, n));
 
 /**
+ * คะแนนรวมตามสูตรของหลักสูตร คิดจากคะแนนรายวิชาที่ผู้ใช้กรอก — null ถ้าใช้ไม่ได้
+ * ใช้เมื่อ (1) หลักสูตรมีสถิติจริงและรู้สูตร (2) ผู้ใช้กรอกคะแนนรายวิชาอย่างน้อย 1 วิชาที่สูตรนี้ใช้
+ * วิชาในสูตรที่ผู้ใช้ไม่ได้กรอก ใช้คะแนนสอบรวมแทน (ถ้าไม่มีทั้งสองอย่าง ตัดวิชานั้นออกแล้วเฉลี่ยจากที่เหลือ)
+ */
+export function subjectScore(profile: Profile, p: ProgramData): number | null {
+  const w = p.max_score != null ? p.score_weights : null;
+  const mine = profile.subject_scores;
+  if (!w || !mine) return null;
+  const keys = Object.keys(w) as (keyof ScoreWeights)[];
+  if (!keys.some((k) => k !== 'gpax' && mine[k as keyof SubjectScores] != null)) return null;
+  let sum = 0, used = 0;
+  for (const k of keys) {
+    const weight = Number(w[k]) || 0;
+    const s = k === 'gpax' ? (profile.gpa != null ? profile.gpa * 25 : null) : mine[k as keyof SubjectScores] ?? profile.exam_score ?? null;
+    if (s == null || weight <= 0) continue;
+    sum += weight * Number(s); used += weight;
+  }
+  return used > 0 ? round(sum / used, 2) : null;
+}
+
+/**
  * คะแนนของผู้ใช้ที่เทียบกับสถิติคะแนนต่ำสุด–สูงสุดของหลักสูตรได้ (เต็ม 100) — null ถ้ายังไม่กรอกทั้ง GPA และคะแนนสอบ
  * สถิติของ ทปอ. เป็นคะแนนรวมตามเกณฑ์ของแต่ละหลักสูตร บางหลักสูตรใช้ GPAX เป็นส่วนหนึ่งหรือทั้งหมด
  * จึงผสม GPAX (คิดเป็นร้อยละ = GPA ÷ 4 × 100) กับคะแนนสอบตามสัดส่วน gpax_weight ของหลักสูตรนั้น
  */
 export function comparableScore(profile: Profile, p: ProgramData): number | null {
+  const bySubject = subjectScore(profile, p);
+  if (bySubject != null) return bySubject;
   const w = p.max_score != null ? clamp(Number(p.gpax_weight ?? 0), 0, 1) : 0;
   const gpaPct = profile.gpa != null ? profile.gpa * 25 : null;
   const exam = profile.exam_score ?? null;
@@ -272,7 +300,7 @@ export function evaluate(
     const chance = admissionChance(profile, p);
     const meaningful = details.filter((d) => d.weight > 0);
     return {
-      rank: 0, program: p, score: round(scores[i] * 100, 2), admissionChance: chance, distanceKm: homeDistance(profile, p), risk: riskLevel(chance), flags, details,
+      rank: 0, program: p, score: round(scores[i] * 100, 2), admissionChance: chance, myScore: comparableScore(profile, p), scoreBasis: subjectScore(profile, p) != null ? 'subjects' : 'overall', distanceKm: homeDistance(profile, p), risk: riskLevel(chance), flags, details,
       strengths: meaningful.filter((d) => d.normalized >= 0.9).sort((a, b) => b.weighted - a.weighted).slice(0, 3).map((d) => d.name),
       weaknesses: meaningful.filter((d) => d.normalized < 0.7).sort((a, b) => a.normalized - b.normalized).slice(0, 2).map((d) => d.name),
     };

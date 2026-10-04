@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { api } from '../lib/api';
 import { useStore, MAX_COMPARE } from '../lib/store';
 import { Link } from '../lib/router';
-import { baht, colorFor, FLAG_TEXT, RISK, mapUrl } from '../lib/format';
+import { baht, colorFor, FLAG_TEXT, RISK, mapUrl, formulaText } from '../lib/format';
 import type { EvalResult, Program, Ranked } from '../lib/types';
 import { evalSession } from '../lib/session';
 import { Badge, Button, Card, Empty, Loading, cx, useToast } from '../components/ui';
@@ -60,7 +60,8 @@ export default function ProgramDetail({ id }: { id: number }) {
     ['ระยะทางจากบ้าน (เส้นตรง)', ev?.distanceKm != null ? `ราว ${baht(ev.distanceKm)} กม.` : 'ยังไม่ระบุที่อยู่'],
     ...(p.score_source
       ? [[`คะแนนต่ำสุด–สูงสุดที่ติด (${p.score_source})`, `${p.min_score} – ${p.max_score}`], ['จำนวนรับ / ผู้สมัคร (รอบ 3)', `${baht(p.capacity)} / ${baht(p.applicants)} คน`],
-        ['คะแนนที่ใช้คัดเลือก', `GPAX ${Math.round((p.gpax_weight ?? 0) * 100)}% · คะแนนสอบ ${100 - Math.round((p.gpax_weight ?? 0) * 100)}%`],
+        ['สูตรคะแนนคัดเลือกรอบ 3', p.score_weights ? formulaText(p.score_weights) : `GPAX ${Math.round((p.gpax_weight ?? 0) * 100)}% · คะแนนสอบ ${100 - Math.round((p.gpax_weight ?? 0) * 100)}% (ยังไม่มีประกาศรายวิชา)`],
+        ['คะแนนของคุณตามสูตรนี้', ev?.myScore != null ? `${ev.myScore} (${ev.scoreBasis === 'subjects' ? 'คิดจากคะแนนรายวิชา' : 'ใช้คะแนนสอบรวม'})` : 'ยังไม่ได้กรอกคะแนน'],
         ['GPAX ขั้นต่ำ', p.min_gpa > 0 ? p.min_gpa.toFixed(2) : 'ไม่กำหนด']] as [string, string][]
       : [['GPA ขั้นต่ำ (ประมาณ)', p.min_gpa.toFixed(2)], ['คะแนนสอบขั้นต่ำ (ประมาณ)', `${p.min_score}%`], ['จำนวนรับ (ประมาณ)', `${p.capacity} คน`]] as [string, string][]),
     ['ที่ตั้ง', `${p.province ?? ''} (${p.region})`],

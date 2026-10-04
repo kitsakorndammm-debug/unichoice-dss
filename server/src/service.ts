@@ -16,11 +16,11 @@ export async function loadCriteria(activeOnly = true): Promise<(CriteriaDef & { 
   return q(`SELECT * FROM criteria ${activeOnly ? 'WHERE is_active' : ''} ORDER BY sort_order, criteria_id`);
 }
 
-export const EMPTY_PROFILE: Profile = { gpa: null, exam_score: null, budget: null, preferred_region: null, interest_field: null, home_province: null, home_lat: null, home_lng: null };
+export const EMPTY_PROFILE: Profile = { gpa: null, exam_score: null, budget: null, preferred_region: null, interest_field: null, home_province: null, home_lat: null, home_lng: null, subject_scores: null };
 
 export async function getProfile(userId: number): Promise<Profile> {
   const p = await one<Profile>(
-    `SELECT gpa, exam_score, budget, preferred_region, interest_field, home_province, home_lat, home_lng FROM student_profile WHERE user_id = $1`, [userId]);
+    `SELECT gpa, exam_score, budget, preferred_region, interest_field, home_province, home_lat, home_lng, subject_scores FROM student_profile WHERE user_id = $1`, [userId]);
   return p ?? { ...EMPTY_PROFILE };
 }
 

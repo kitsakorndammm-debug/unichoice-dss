@@ -31,6 +31,7 @@ CREATE TABLE student_profile (
   user_id           INT NOT NULL UNIQUE REFERENCES users(user_id) ON DELETE CASCADE,
   gpa               DECIMAL(3,2) CHECK (gpa BETWEEN 0 AND 4),
   exam_score        DECIMAL(5,2) CHECK (exam_score BETWEEN 0 AND 100), -- คะแนนสอบ TCAS (TGAT/TPAT/A-Level) คิดเป็นร้อยละ
+  subject_scores    JSONB,                        -- คะแนนรายวิชา (ไม่บังคับ) เช่น {"tgat":70,"a61":55} ใช้คิดคะแนนรวมตามสูตรของแต่ละหลักสูตร
   budget            DECIMAL(10,2),                -- งบค่าเล่าเรียนต่อปี
   home_province     VARCHAR(50),                  -- จังหวัดที่อยู่ ใช้คิดระยะทางถึงมหาวิทยาลัย (NULL = ยังไม่ระบุ)
   home_lat          DECIMAL(8,5),                 -- ตำแหน่งจริงจากเบราว์เซอร์ (ผู้ใช้กดอนุญาตเอง ปัดเหลือทศนิยม 3 ตำแหน่ง ≈ 100 ม.)
@@ -66,6 +67,7 @@ CREATE TABLE program (
   min_gpa         DECIMAL(3,2)  NOT NULL CHECK (min_gpa BETWEEN 0 AND 4),     -- GPAX ขั้นต่ำ: ตามประกาศเกณฑ์รอบ 3 เมื่อมีสถิติทางการ (0 = ไม่กำหนด) ไม่งั้นเป็นค่าประมาณ
   gpax_weight     DECIMAL(3,2)  NOT NULL DEFAULT 0 CHECK (gpax_weight BETWEEN 0 AND 1), -- สัดส่วน GPAX ในคะแนนรวมที่ใช้คัดเลือกรอบ 3 (ใช้แปลงคะแนนของผู้ใช้ให้เทียบกับสถิติได้)
   min_score       DECIMAL(5,2)  NOT NULL CHECK (min_score BETWEEN 0 AND 100), -- คะแนนต่ำสุดของผู้ที่สอบติด (จริงเมื่อ score_source มีค่า ไม่งั้นเป็นค่าประมาณ)
+  score_weights   JSONB,                                                      -- สูตรคะแนนคัดเลือกรอบ 3 รายวิชา (%) ตามประกาศ เช่น {"tgat":20,"a61":40,"a82":40} (NULL = ไม่ทราบ)
   max_score       DECIMAL(5,2)  CHECK (max_score BETWEEN 0 AND 100),          -- คะแนนสูงสุดของผู้ที่สอบติด (มีเฉพาะข้อมูลจริง)
   applicants      INT,                                                        -- จำนวนผู้สมัครรอบ 3 (มีเฉพาะข้อมูลจริง)
   score_source    VARCHAR(60),                                                -- ที่มาของสถิติ เช่น 'TCAS69 รอบ 3 Admission' (NULL = ค่าประมาณ)

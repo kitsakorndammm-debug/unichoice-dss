@@ -7,6 +7,7 @@ import { PROGRAM_SELECT, loadCriteria, getProfile, getWeights, saveWeights, runE
 import { renderReport } from '../report.js';
 import { homeDistance } from '../saw.js';
 import { REGIONS, FIELDS } from '../../db/data.js';
+import { SUBJECTS, SUBJECT_KEYS } from '../subjects.js';
 import { PROVINCE_NAMES, PROVINCES } from '../geo.js';
 
 const ANY = 'ทั้งหมด';
@@ -17,7 +18,7 @@ student.use(requireAuth);
 // ---------- ข้อมูลตั้งต้นสำหรับฟอร์ม ----------
 student.get('/meta', ah(async (_req, res) => {
   const unis = await q(`SELECT uni_id, uni_name, short_name, region, type, province, lat, lng FROM university ORDER BY uni_name`);
-  res.json({ regions: REGIONS, fields: FIELDS, provinces: PROVINCE_NAMES, provinceCoords: PROVINCES, universities: unis });
+  res.json({ regions: REGIONS, fields: FIELDS, provinces: PROVINCE_NAMES, provinceCoords: PROVINCES, universities: unis, subjects: SUBJECTS });
 }));
 
 // ---------- FR-02 โปรไฟล์ ----------
@@ -31,6 +32,11 @@ const profileSchema = z.object({
   // ตำแหน่งจริงจากเบราว์เซอร์ ปัดเหลือทศนิยม 3 ตำแหน่ง (ราว 100 ม.) ไม่เก็บละเอียดเกินจำเป็น
   home_lat: z.coerce.number().min(-90).max(90).transform((v) => Math.round(v * 1000) / 1000).nullable(),
   home_lng: z.coerce.number().min(-180).max(180).transform((v) => Math.round(v * 1000) / 1000).nullable(),
+  // คะแนนรายวิชา (ไม่บังคับ): ส่งเฉพาะวิชาที่มีคะแนน ช่องว่าง/null ถูกตัดทิ้ง ไม่มีเลย = null
+  subject_scores: z.record(z.string(), z.union([z.null(), z.literal(''), z.coerce.number().min(0, 'คะแนนรายวิชา 0–100').max(100, 'คะแนนรายวิชา 0–100')]))
+    .refine((o) => Object.keys(o).every((k) => (SUBJECT_KEYS as string[]).includes(k)), 'วิชาไม่อยู่ในรายการ')
+    .transform((o) => { const e = Object.entries(o).filter(([, v]) => v !== null && v !== '') as [string, number][]; return e.length ? Object.fromEntries(e) : null; })
+    .nullable(),
 });
 
 student.get('/profile', ah(async (req, res) => {
@@ -44,10 +50,10 @@ student.put('/profile', ah(async (req, res) => {
   const m = { ...cur, ...p };
   // ตำแหน่งจริงต้องมาครบทั้งคู่ ไม่งั้นถือว่าไม่มี
   const [lat, lng] = m.home_lat != null && m.home_lng != null ? [m.home_lat, m.home_lng] : [null, null];
-  await q(`INSERT INTO student_profile (user_id, gpa, exam_score, budget, preferred_region, interest_field, home_province, home_lat, home_lng, updated_at)
-           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9, now())
-           ON CONFLICT (user_id) DO UPDATE SET gpa=$2, exam_score=$3, budget=$4, preferred_region=$5, interest_field=$6, home_province=$7, home_lat=$8, home_lng=$9, updated_at=now()`,
-    [req.user!.sub, m.gpa, m.exam_score, m.budget, m.preferred_region, m.interest_field, m.home_province ?? null, lat, lng]);
+  await q(`INSERT INTO student_profile (user_id, gpa, exam_score, budget, preferred_region, interest_field, home_province, home_lat, home_lng, subject_scores, updated_at)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10, now())
+           ON CONFLICT (user_id) DO UPDATE SET gpa=$2, exam_score=$3, budget=$4, preferred_region=$5, interest_field=$6, home_province=$7, home_lat=$8, home_lng=$9, subject_scores=$10, updated_at=now()`,
+    [req.user!.sub, m.gpa, m.exam_score, m.budget, m.preferred_region, m.interest_field, m.home_province ?? null, lat, lng, m.subject_scores ? JSON.stringify(m.subject_scores) : null]);
   if (p.name || p.phone !== undefined) {
     await q(`UPDATE users SET name = COALESCE($2, name), phone = COALESCE($3, phone) WHERE user_id = $1`, [req.user!.sub, p.name ?? null, p.phone ?? null]);
   }
