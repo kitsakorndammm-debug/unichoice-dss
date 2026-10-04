@@ -1,0 +1,31 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: dss
+      POSTGRES_PASSWORD: dss
+      POSTGRES_DB: dss
+    # ไม่เปิดพอร์ตออกมาที่เครื่อง: app คุยกับ db ผ่านเครือข่ายภายในของ compose อยู่แล้ว
+    # และเลี่ยงการชนกับ PostgreSQL ที่ติดตั้งในเครื่อง (พอร์ต 5432)
+    volumes: [pgdata:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dss"]
+      interval: 3s
+      retries: 20
+
+  redis:
+    image: redis:7-alpine
+
+  app:
+    build: .
+    depends_on:
+      db: { condition: service_healthy }
+      redis: { condition: service_started }
+    environment:
+      DATABASE_URL: postgres://dss:dss@db:5432/dss
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: dss-demo-secret
+    ports: ["4000:4000"]
+
+volumes:
+  pgdata:

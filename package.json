@@ -1,0 +1,11 @@
+{
+  "name": "unichoice-dss",
+  "private": true,
+  "scripts": {
+    "setup": "npm --prefix server install && npm --prefix client install",
+    "dev:server": "npm --prefix server run dev",
+    "dev:client": "npm --prefix client run dev",
+    "db:reset": "npm --prefix server run db:reset",
+    "test": "npm --prefix server test"
+  }
+}
