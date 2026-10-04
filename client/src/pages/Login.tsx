@@ -50,8 +50,18 @@ export default function Login() {
         <div className="relative text-xs text-white/50">ภาควิชาวิทยาการคอมพิวเตอร์และเทคโนโลยีสารสนเทศ คณะวิทยาศาสตร์ มหาวิทยาลัยนเรศวร</div>
       </div>
 
-      <div className="flex items-center justify-center p-6">
-        <div className="w-full max-w-sm">
+      <div className="flex flex-col lg:items-center lg:justify-center lg:p-6">
+        {/* จอเล็ก: แถบโลโก้ด้านบน (จอใหญ่ใช้แผงซ้ายแทน) */}
+        <div className="relative overflow-hidden bg-brand-700 px-6 pb-16 pt-10 text-center text-white lg:hidden">
+          <div className="absolute -right-16 -top-16 h-48 w-48 rounded-full bg-white/5" />
+          <div className="absolute -bottom-20 -left-10 h-56 w-56 rounded-full bg-white/5" />
+          <div className="relative mx-auto grid h-16 w-16 place-items-center rounded-2xl bg-white text-brand-700 shadow-lg">
+            <svg viewBox="0 0 24 24" className="h-9 w-9" fill="none" stroke="currentColor" strokeWidth={2.4} strokeLinecap="round" strokeLinejoin="round"><path d="M5 16l4-5 3 2.5 5-7" /></svg>
+          </div>
+          <div className="relative mt-3 text-2xl font-semibold tracking-tight">UniChoice DSS</div>
+          <div className="relative mt-1 text-sm text-white/80">ช่วยตัดสินใจเลือกคณะและมหาวิทยาลัย</div>
+        </div>
+        <div className="relative z-10 mx-4 -mt-8 mb-8 w-auto rounded-2xl bg-white p-5 shadow-[0_10px_30px_-12px_#1e1b4b59] ring-1 ring-brand-900/10 sm:mx-auto sm:w-full sm:max-w-sm lg:mt-0 lg:p-7">
           <h2 className="text-2xl font-semibold tracking-tight">{mode === 'login' ? 'เข้าสู่ระบบ' : 'สมัครสมาชิก'}</h2>
           <p className="mt-1 text-sm text-ink-2">{mode === 'login' ? 'ยินดีต้อนรับกลับ' : 'สร้างบัญชีเพื่อเริ่มวิเคราะห์'}</p>
 
